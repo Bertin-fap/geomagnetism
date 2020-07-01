@@ -8,11 +8,12 @@ pip install geomagnetism
 ```
 
 ## Usage example
-**refer to** [example-raman-hyperspectra](https://github.com/Bertin-fap/geomagnetism-exemples).
+**refer to** [geomagnetism-exemples](https://github.com/Bertin-fap/geomagnetism-exemples).
 
 
 # Release History
-0.0.1
+0.0.2 correct pole ambiguity by using limitig value of associated Legendre polynomial
+0.0.3 create geomagnetic field cartography 
 
 # Meta
 	- François Bertin– francois.bertin7@wanadoo.fr 
