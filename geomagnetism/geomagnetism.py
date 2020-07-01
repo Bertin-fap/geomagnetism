@@ -562,3 +562,36 @@ def decdeg2dms(dd):
         else:
             seconds = -seconds
     return degrees, minutes, seconds
+    
+def construct_xarray(
+    Intensity, longitude, colatitude):
+
+    """
+    construct the xarray of a hyperspectrum
+
+    Arguments:
+        Intensity (np array): geomagnetic fiel component intensities (nT)
+        longitude (np array): longitude (°)
+        colatitude (np array): colatitude (°)
+
+    Returns:
+        I (xarray): hyperspectrum
+    """
+
+    # 3rd party dependencies
+    import xarray as xr
+    import numpy as np
+
+
+    da = xr.DataArray(
+        Intensity,
+        dims=["colat", "long"],
+        name="Field intensity",
+        attrs={"units": "nT",},
+        coords={
+            "colat": xr.DataArray(colatitude, name="colat", dims=["colat"], attrs={"units": "°"}),
+            "long": xr.DataArray(longitude, name="long", dims=["long"], attrs={"units": "°"}),
+               },
+            )
+
+    return da
