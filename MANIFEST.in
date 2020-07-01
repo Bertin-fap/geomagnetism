@@ -1,0 +1,5 @@
+include geomagnetism/*.COF
+include geomagnetism/*.txt
+include geomagnetism/*.xlsx
+include doc/*.pdf
+include LICENSE
