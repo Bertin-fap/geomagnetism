@@ -6,6 +6,7 @@ __all__ = [
     "Norm_Schimdt",
     "Norm_Stacey",
     "grid_geomagnetic",
+    "construct_xarray",
 ]
 
 # Ellipsoid parameters: semi major axis in metres, reciprocal flattening.
@@ -182,11 +183,11 @@ def B_components(
         mat_rot = np.identity(3)
 
     r_a = EARTH_RADIUS / r_geocentric
-    
-    if Phi_>=0:
+
+    if Phi_ >= 0:
         phi = phi_ * np.pi / 180
     else:
-        phi = (360 + phi_) * np.pi / 180 
+        phi = (360 + phi_) * np.pi / 180
 
     # synthesis of Xc, Yc and Zc in geocentric coordinates
     if theta > EPS and theta < np.pi - EPS:
@@ -563,9 +564,9 @@ def decdeg2dms(dd):
         else:
             seconds = -seconds
     return degrees, minutes, seconds
-    
-def construct_xarray(
-    intensities, angles, longitudes, colatitudes):
+
+
+def construct_xarray(intensities, angles, longitudes, colatitudes):
 
     """
     construct the xarray of a hyperspectrum
@@ -585,41 +586,43 @@ def construct_xarray(
     import xarray as xr
     import numpy as np
 
-    miller = lambda x :1.25*np.arcsinh(np.tan(4*x*np.pi/900))*180/np.pi
-    
-    y = miller(90-colatitudes)
-    
+    miller = lambda x: 1.25 * np.arcsinh(np.tan(4 * x * np.pi / 900)) * 180 / np.pi
+
+    y = miller(90 - colatitudes)
+
     dintensities = xr.DataArray(
         intensities,
-        dims=["typ","lat", "long"],
+        dims=["typ", "lat", "long"],
         name="Field intensity",
         attrs={"units": "nT",},
         coords={
-            "typ": xr.DataArray(['X','Y','Z','H','F',], name="typ", dims=["typ"]),
+            "typ": xr.DataArray(["X", "Y", "Z", "H", "F",], name="typ", dims=["typ"]),
             "lat": xr.DataArray(y, name="lat", dims=["lat"], attrs={"units": "°"}),
-            "long": xr.DataArray(longitudes, name="long", dims=["long"], attrs={"units": "°"}),
-            
-               },
-            )
-    
+            "long": xr.DataArray(
+                longitudes, name="long", dims=["long"], attrs={"units": "°"}
+            ),
+        },
+    )
+
     dangles = xr.DataArray(
         angles,
-        dims=["typ","lat", "long"],
+        dims=["typ", "lat", "long"],
         name="Angle",
         attrs={"units": "°",},
         coords={
-            "typ": xr.DataArray(['D','I',], name="typ", dims=["typ"]),
+            "typ": xr.DataArray(["D", "I",], name="typ", dims=["typ"]),
             "lat": xr.DataArray(y, name="lat", dims=["lat"], attrs={"units": "°"}),
-            "long": xr.DataArray(longitudes, name="long", dims=["long"], attrs={"units": "°"}),
-            
-               },
-            )
+            "long": xr.DataArray(
+                longitudes, name="long", dims=["long"], attrs={"units": "°"}
+            ),
+        },
+    )
     return dintensities, dangles
-    
-    
+
+
 def grid_geomagnetic(colatitudes, longitudes):
-    
-    '''computes the geomagnetic field characteristics on a mesh of
+
+    """computes the geomagnetic field characteristics on a mesh of
     colatitudes, latitudes
     
     Arguments:
@@ -630,7 +633,7 @@ def grid_geomagnetic(colatitudes, longitudes):
         da (xarray): containing the values of the geomagnetic field components, 
     declination and inclination
      
-    '''
+    """
 
     H = []
     X = []
@@ -639,31 +642,42 @@ def grid_geomagnetic(colatitudes, longitudes):
     D = []
     I = []
     F = []
-    result =[]
+    result = []
 
     for colatitude in colatitudes:
         for longitude in longitudes:
-            result = geo.B_components(longitude,colatitude,height,Date,referential="geodetic",
-                                       file="WMM_2020.COF", SV=True)
-            X.append(result['X'])
-            Y.append(result['Y'])
-            Z.append(result['Z'])
-            H.append(result['H'])
-            F.append(result['F'])
-            D.append(result['D'])
-            I.append(result['I'])
+            result = geo.B_components(
+                longitude,
+                colatitude,
+                height,
+                Date,
+                referential="geodetic",
+                file="WMM_2020.COF",
+                SV=True,
+            )
+            X.append(result["X"])
+            Y.append(result["Y"])
+            Z.append(result["Z"])
+            H.append(result["H"])
+            F.append(result["F"])
+            D.append(result["D"])
+            I.append(result["I"])
 
-    intensities = [np.array(X).reshape((len(colatitudes),len(longitudes))),
-                   np.array(Y).reshape((len(colatitudes),len(longitudes))),
-                   np.array(Z).reshape((len(colatitudes),len(longitudes))),
-                   np.array(H).reshape((len(colatitudes),len(longitudes))),
-                   np.array(F).reshape((len(colatitudes),len(longitudes))),
-                  ]
-    
-    angles = [ np.array(D).reshape((len(colatitudes),len(longitudes) )),
-               np.array(I).reshape((len(colatitudes),len(longitudes) )),
-              ]
-    
-    dintensities, dangles = construct_xarray(intensities, angles, longitudes, colatitudes)
-    
+    intensities = [
+        np.array(X).reshape((len(colatitudes), len(longitudes))),
+        np.array(Y).reshape((len(colatitudes), len(longitudes))),
+        np.array(Z).reshape((len(colatitudes), len(longitudes))),
+        np.array(H).reshape((len(colatitudes), len(longitudes))),
+        np.array(F).reshape((len(colatitudes), len(longitudes))),
+    ]
+
+    angles = [
+        np.array(D).reshape((len(colatitudes), len(longitudes))),
+        np.array(I).reshape((len(colatitudes), len(longitudes))),
+    ]
+
+    dintensities, dangles = construct_xarray(
+        intensities, angles, longitudes, colatitudes
+    )
+
     return dintensities, dangles

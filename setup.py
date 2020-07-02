@@ -27,7 +27,7 @@ setup(name='geomagnetism',
         'Operating System :: OS Independent',
         'Intended Audience :: Science/Research'
         ],
-      keywords = 'Raman, hyperspectra, data processing',
+      keywords = 'Geomagnetism, magnetism, data processing',
       install_requires = ['pandas',
                           'numpy',
                           'scipy',
