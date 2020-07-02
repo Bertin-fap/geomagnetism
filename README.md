@@ -13,7 +13,7 @@ pip install geomagnetism
 
 # Release History
 0.0.2 correct pole ambiguity by using limitig value of associated Legendre polynomial
-0.0.3 create geomagnetic field cartography 
+0.0.3 create geomagnetic field cartography using PlateCarree representation. 'Miller' would be better)
 
 # Meta
 	- François Bertin– francois.bertin7@wanadoo.fr 

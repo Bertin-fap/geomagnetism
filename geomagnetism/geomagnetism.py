@@ -199,10 +199,10 @@ def B_components(
     else:
         X, Y, Z = field_computation_pole(r_a, phi, theta, dic_g, dic_h, N, mat_rot, EPS)
 
-    D = np.arctan2(Y, X) * 180 / np.pi  # declination
-    I = np.arctan2(Z, X) * 180 / np.pi  # inclination
     F = np.linalg.norm([X, Y, Z])
     H = np.linalg.norm([X, Y])
+    D = np.arctan2(Y, X) * 180 / np.pi  # declination
+    I = np.arctan2(Z, H) * 180 / np.pi  # inclination
 
     # secular variation computation
     Xd, Yd, Zd, Hd, Fd = [None] * 5
