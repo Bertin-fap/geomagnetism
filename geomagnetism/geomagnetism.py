@@ -5,6 +5,7 @@ __all__ = [
     "decdeg2dms",
     "Norm_Schimdt",
     "Norm_Stacey",
+    "grid_geomagnetic",
 ]
 
 # Ellipsoid parameters: semi major axis in metres, reciprocal flattening.
@@ -564,34 +565,105 @@ def decdeg2dms(dd):
     return degrees, minutes, seconds
     
 def construct_xarray(
-    Intensity, longitude, colatitude):
+    intensities, angles, longitudes, colatitudes):
 
     """
     construct the xarray of a hyperspectrum
 
     Arguments:
-        Intensity (np array): geomagnetic fiel component intensities (nT)
-        longitude (np array): longitude (°)
-        colatitude (np array): colatitude (°)
+        intensities (np array): geomagnetic field components intensity (nT)
+        angles (np array): geomagnetic field inclination and declination
+        longitudes (np array): longitude (°)
+        colatitudes (np array): colatitude (°)
 
     Returns:
-        I (xarray): hyperspectrum
+        dintensities (xarray): hyperspectrum containing the geomagnetic field components intensity
+        dangles (xarray): hyperspectrum containing the geomagnetic field declination and inclination
     """
 
     # 3rd party dependencies
     import xarray as xr
     import numpy as np
 
-
-    da = xr.DataArray(
-        Intensity,
-        dims=["colat", "long"],
+    miller = lambda x :1.25*np.arcsinh(np.tan(4*x*np.pi/900))*180/np.pi
+    
+    y = miller(90-colatitudes)
+    
+    dintensities = xr.DataArray(
+        intensities,
+        dims=["typ","lat", "long"],
         name="Field intensity",
         attrs={"units": "nT",},
         coords={
-            "colat": xr.DataArray(colatitude, name="colat", dims=["colat"], attrs={"units": "°"}),
-            "long": xr.DataArray(longitude, name="long", dims=["long"], attrs={"units": "°"}),
+            "typ": xr.DataArray(['X','Y','Z','H','F',], name="typ", dims=["typ"]),
+            "lat": xr.DataArray(y, name="lat", dims=["lat"], attrs={"units": "°"}),
+            "long": xr.DataArray(longitudes, name="long", dims=["long"], attrs={"units": "°"}),
+            
                },
             )
+    
+    dangles = xr.DataArray(
+        angles,
+        dims=["typ","lat", "long"],
+        name="Angle",
+        attrs={"units": "°",},
+        coords={
+            "typ": xr.DataArray(['D','I',], name="typ", dims=["typ"]),
+            "lat": xr.DataArray(y, name="lat", dims=["lat"], attrs={"units": "°"}),
+            "long": xr.DataArray(longitudes, name="long", dims=["long"], attrs={"units": "°"}),
+            
+               },
+            )
+    return dintensities, dangles
+    
+    
+def grid_geomagnetic(colatitudes, longitudes):
+    
+    '''computes the geomagnetic field characteristics on a mesh of
+    colatitudes, latitudes
+    
+    Arguments:
+        colatitudes (nparray): list of colatitudes
+        latitudes (nparray): list of latitudes
+     
+    Returns:
+        da (xarray): containing the values of the geomagnetic field components, 
+    declination and inclination
+     
+    '''
 
-    return da
+    H = []
+    X = []
+    Y = []
+    Z = []
+    D = []
+    I = []
+    F = []
+    result =[]
+
+    for colatitude in colatitudes:
+        for longitude in longitudes:
+            result = geo.B_components(longitude,colatitude,height,Date,referential="geodetic",
+                                       file="WMM_2020.COF", SV=True)
+            X.append(result['X'])
+            Y.append(result['Y'])
+            Z.append(result['Z'])
+            H.append(result['H'])
+            F.append(result['F'])
+            D.append(result['D'])
+            I.append(result['I'])
+
+    intensities = [np.array(X).reshape((len(colatitudes),len(longitudes))),
+                   np.array(Y).reshape((len(colatitudes),len(longitudes))),
+                   np.array(Z).reshape((len(colatitudes),len(longitudes))),
+                   np.array(H).reshape((len(colatitudes),len(longitudes))),
+                   np.array(F).reshape((len(colatitudes),len(longitudes))),
+                  ]
+    
+    angles = [ np.array(D).reshape((len(colatitudes),len(longitudes) )),
+               np.array(I).reshape((len(colatitudes),len(longitudes) )),
+              ]
+    
+    dintensities, dangles = construct_xarray(intensities, angles, longitudes, colatitudes)
+    
+    return dintensities, dangles
