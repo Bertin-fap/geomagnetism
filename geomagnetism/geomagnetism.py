@@ -184,7 +184,7 @@ def B_components(
 
     r_a = EARTH_RADIUS / r_geocentric
 
-    if Phi_ >= 0:
+    if phi_ >= 0:
         phi = phi_ * np.pi / 180
     else:
         phi = (360 + phi_) * np.pi / 180
@@ -620,7 +620,7 @@ def construct_xarray(intensities, angles, longitudes, colatitudes):
     return dintensities, dangles
 
 
-def grid_geomagnetic(colatitudes, longitudes):
+def grid_geomagnetic(colatitudes, longitudes, height=0, Date={"mode":"dec","year":2020.0}):
 
     """computes the geomagnetic field characteristics on a mesh of
     colatitudes, latitudes
@@ -628,6 +628,7 @@ def grid_geomagnetic(colatitudes, longitudes):
     Arguments:
         colatitudes (nparray): list of colatitudes
         latitudes (nparray): list of latitudes
+        height (float): height (meters)
      
     Returns:
         da (xarray): containing the values of the geomagnetic field components, 
@@ -635,6 +636,9 @@ def grid_geomagnetic(colatitudes, longitudes):
      
     """
 
+    # 3rd party dependencies
+    import numpy as np
+    
     H = []
     X = []
     Y = []
@@ -646,7 +650,7 @@ def grid_geomagnetic(colatitudes, longitudes):
 
     for colatitude in colatitudes:
         for longitude in longitudes:
-            result = geo.B_components(
+            result = B_components(
                 longitude,
                 colatitude,
                 height,
