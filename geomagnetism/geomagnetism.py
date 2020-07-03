@@ -566,7 +566,9 @@ def decdeg2dms(dd):
     return degrees, minutes, seconds
 
 
-def construct_xarray(intensities, angles, longitudes, colatitudes):
+def construct_xarray(
+    intensities, angles, intensities_sv, angles_sv, longitudes, colatitudes
+):
 
     """
     construct the xarray of a hyperspectrum
@@ -574,12 +576,16 @@ def construct_xarray(intensities, angles, longitudes, colatitudes):
     Arguments:
         intensities (np array): geomagnetic field components intensity (nT)
         angles (np array): geomagnetic field inclination and declination
+        intensities_sv (np array): secular variation of geomagnetic field components intensity (nT/year)
+        angles_sv (np array): secular variation of the geomagnetic field inclination and declination (°/year)
         longitudes (np array): longitude (°)
         colatitudes (np array): colatitude (°)
 
     Returns:
         dintensities (xarray): hyperspectrum containing the geomagnetic field components intensity
         dangles (xarray): hyperspectrum containing the geomagnetic field declination and inclination
+        dintensities_sv (xarray): hyperspectrum containing the geomagnetic field components intensity secular variation
+        dangles_sv (xarray): hyperspectrum containing the geomagnetic field declination and inclination secular variation
     """
 
     # 3rd party dependencies
@@ -617,10 +623,43 @@ def construct_xarray(intensities, angles, longitudes, colatitudes):
             ),
         },
     )
-    return dintensities, dangles
+
+    dintensities_sv = xr.DataArray(
+        intensities_sv,
+        dims=["typ", "lat", "long"],
+        name="Field intensity secular variation",
+        attrs={"units": "nT/year",},
+        coords={
+            "typ": xr.DataArray(
+                ["Xd", "Yd", "Zd", "Hd", "Fd",], name="typ", dims=["typ"]
+            ),
+            "lat": xr.DataArray(y, name="lat", dims=["lat"], attrs={"units": "°"}),
+            "long": xr.DataArray(
+                longitudes, name="long", dims=["long"], attrs={"units": "°"}
+            ),
+        },
+    )
+
+    dangles_sv = xr.DataArray(
+        angles_sv,
+        dims=["typ", "lat", "long"],
+        name="Angle secular variation",
+        attrs={"units": "°/year",},
+        coords={
+            "typ": xr.DataArray(["Dd", "Id",], name="typ", dims=["typ"]),
+            "lat": xr.DataArray(y, name="lat", dims=["lat"], attrs={"units": "°"}),
+            "long": xr.DataArray(
+                longitudes, name="long", dims=["long"], attrs={"units": "°"}
+            ),
+        },
+    )
+
+    return dintensities, dangles, dintensities_sv, dangles_sv
 
 
-def grid_geomagnetic(colatitudes, longitudes, height=0, Date={"mode":"dec","year":2020.0}):
+def grid_geomagnetic(
+    colatitudes, longitudes, height=0, Date={"mode": "dec", "year": 2020.0}
+):
 
     """computes the geomagnetic field characteristics on a mesh of
     colatitudes, latitudes
@@ -638,15 +677,9 @@ def grid_geomagnetic(colatitudes, longitudes, height=0, Date={"mode":"dec","year
 
     # 3rd party dependencies
     import numpy as np
-    
-    H = []
-    X = []
-    Y = []
-    Z = []
-    D = []
-    I = []
-    F = []
-    result = []
+
+    X, Y, Z, H, F, D, I = [], [], [], [], [], [], []
+    Xd, Yd, Zd, Hd, Fd, Dd, Id = [], [], [], [], [], [], []
 
     for colatitude in colatitudes:
         for longitude in longitudes:
@@ -667,6 +700,14 @@ def grid_geomagnetic(colatitudes, longitudes, height=0, Date={"mode":"dec","year
             D.append(result["D"])
             I.append(result["I"])
 
+            Xd.append(result["Xd"])
+            Yd.append(result["Yd"])
+            Zd.append(result["Zd"])
+            Hd.append(result["Hd"])
+            Fd.append(result["Fd"])
+            Dd.append(result["Dd"])
+            Id.append(result["Id"])
+
     intensities = [
         np.array(X).reshape((len(colatitudes), len(longitudes))),
         np.array(Y).reshape((len(colatitudes), len(longitudes))),
@@ -680,8 +721,21 @@ def grid_geomagnetic(colatitudes, longitudes, height=0, Date={"mode":"dec","year
         np.array(I).reshape((len(colatitudes), len(longitudes))),
     ]
 
-    dintensities, dangles = construct_xarray(
-        intensities, angles, longitudes, colatitudes
+    intensities_sv = [
+        np.array(Xd).reshape((len(colatitudes), len(longitudes))),
+        np.array(Yd).reshape((len(colatitudes), len(longitudes))),
+        np.array(Zd).reshape((len(colatitudes), len(longitudes))),
+        np.array(Hd).reshape((len(colatitudes), len(longitudes))),
+        np.array(Fd).reshape((len(colatitudes), len(longitudes))),
+    ]
+
+    angles_sv = [
+        np.array(Dd).reshape((len(colatitudes), len(longitudes))),
+        np.array(Id).reshape((len(colatitudes), len(longitudes))),
+    ]
+
+    dintensities, dangles, dintensities_sv, dangles_sv = construct_xarray(
+        intensities, angles, intensities_sv, angles_sv, longitudes, colatitudes
     )
 
-    return dintensities, dangles
+    return dintensities, dangles, dintensities_sv, dangles_sv

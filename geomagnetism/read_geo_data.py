@@ -9,6 +9,22 @@ __all__ = [
 
 
 def read_gauss_coeff(file=None):
+    '''Reads the tabulated Gauss coefficients
+    Arguments:
+        file (string): name of the file must be
+            "IGRF13.COF" default value or;
+            "IGRF13coeffs.txt" or;
+            "WMM_2015.COF" or;
+            "WMM_2020.COF" or;
+            "FORTRAN_1900_1995.txt"
+    Returns
+        dic_dic_h (dict of dict): h coefficients {year: {(m,n):h,...},...} year ia string
+        dic_dic_g (dict of dict): g coefficients {year: {(m,n):g,...},...} year ia string
+        dic_dic_SV_h (dict of dict): SV_h coefficients {year: {(m,n):SV_h,...},...} year ia string
+        dic_dic_SV_g (dict of dict): SV_g coefficients {year: {(m,n):SV_g,...},...} year ia string
+        dic_N (dict): dictionary containing the order N of the SH decomposition, dic_N[year]=N
+        Years (nparray): array of the tabulated year """
+    '''
 
     if file is None:
         file = "IGRF13.COF"
@@ -289,7 +305,8 @@ def read_fortran_DATA(file):
     Years = np.array(Years)
 
     return dic_dic_h, dic_dic_g, dic_N, Years
-    
+
+
 def read_WWW_test_2020(index):
 
     """reads  the Test Values for WMM2020 .xlsx file
@@ -304,23 +321,23 @@ def read_WWW_test_2020(index):
         longitude (float):longitude in ° 
         WMM (dict): 
     """
-    
+
     import pandas as pd
     import os
-    
-    file = os.path.join(os.path.dirname(__file__), 'WMM2020testvalues.xlsx')
+
+    file = os.path.join(os.path.dirname(__file__), "WMM2020testvalues.xlsx")
 
     df = pd.read_excel(file, header=1)
     WMM = df.to_dict()
-    WMM = {key:value[index] for key, value in WMM.items()} 
-    Date = {"mode":"dec","year":WMM['Date'] }
-    height = WMM['Height\n(km)']*1000
-    colatitude = 90 - WMM['Lat\n(Deg)']
-    longitude = WMM['Lon\n(Deg)']
+    WMM = {key: value[index] for key, value in WMM.items()}
+    Date = {"mode": "dec", "year": WMM["Date"]}
+    height = WMM["Height\n(km)"] * 1000
+    colatitude = 90 - WMM["Lat\n(Deg)"]
+    longitude = WMM["Lon\n(Deg)"]
 
-    del WMM['Date']
-    del WMM['Height\n(km)']
-    del WMM['Lat\n(Deg)']
-    del WMM['Lon\n(Deg)']
-    
+    del WMM["Date"]
+    del WMM["Height\n(km)"]
+    del WMM["Lat\n(Deg)"]
+    del WMM["Lon\n(Deg)"]
+
     return Date, height, colatitude, longitude, WMM
