@@ -305,11 +305,10 @@ def read_fortran_DATA(file):
     Years = np.array(Years)
 
     return dic_dic_h, dic_dic_g, dic_N, Years
-
-
+    
 def read_WWW_test_2020(index):
 
-    """reads  the Test Values for WMM2020 .xlsx file
+    """reads  the Test Values for WMM2020 .xlsx file 
     
     Arguments:
         index (int): index>=0 and index < 11
@@ -321,23 +320,25 @@ def read_WWW_test_2020(index):
         longitude (float):longitude in ° 
         WMM (dict): 
     """
-
+    
     import pandas as pd
     import os
-
-    file = os.path.join(os.path.dirname(__file__), "WMM2020testvalues.xlsx")
+    
+    assert (index >=0 and index <11), "invalid index must be >=0 and <11"
+    
+    file = os.path.join(os.path.dirname(__file__), 'WMM2020testvalues.xlsx')
 
     df = pd.read_excel(file, header=1)
     WMM = df.to_dict()
-    WMM = {key: value[index] for key, value in WMM.items()}
-    Date = {"mode": "dec", "year": WMM["Date"]}
-    height = WMM["Height\n(km)"] * 1000
-    colatitude = 90 - WMM["Lat\n(Deg)"]
-    longitude = WMM["Lon\n(Deg)"]
+    WMM = {key:value[index] for key, value in WMM.items()} 
+    Date = {"mode":"dec","year":WMM['Date'] }
+    height = WMM['Height\n(km)']*1000
+    colatitude = 90 - WMM['Lat\n(Deg)']
+    longitude = WMM['Lon\n(Deg)']
 
-    del WMM["Date"]
-    del WMM["Height\n(km)"]
-    del WMM["Lat\n(Deg)"]
-    del WMM["Lon\n(Deg)"]
-
+    del WMM['Date']
+    del WMM['Height\n(km)']
+    del WMM['Lat\n(Deg)']
+    del WMM['Lon\n(Deg)']
+    
     return Date, height, colatitude, longitude, WMM

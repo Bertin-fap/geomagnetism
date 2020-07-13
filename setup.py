@@ -13,7 +13,7 @@ with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
 # This setup is suitable for "python setup.py develop".
 
 setup(name='geomagnetism',
-      version='0.0.7',
+      version='0.1.0',
       description='toolbox for geomagnetism computation',
       long_description=long_description,
       long_description_content_type='text/markdown',
@@ -31,6 +31,7 @@ setup(name='geomagnetism',
       install_requires = ['pandas',
                           'numpy',
                           'scipy',
+                          'tqdm',
                           'xarray'],
       author= 'ArrayStream(François Bertin)',
       author_email= 'francois.bertin7@wanadoo.fr',

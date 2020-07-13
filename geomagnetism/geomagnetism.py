@@ -7,6 +7,7 @@ __all__ = [
     "Norm_Stacey",
     "grid_geomagnetic",
     "construct_xarray",
+    "plot_geomagetism",
 ]
 
 # Ellipsoid parameters: semi major axis in metres, reciprocal flattening.
@@ -204,7 +205,7 @@ def B_components(
     F = np.linalg.norm([X, Y, Z])
     H = np.linalg.norm([X, Y])
     D = np.arctan2(Y, X) * 180 / np.pi  # declination
-    I = np.arctan2(Z, H) * 180 / np.pi  # inclination
+    I = np.arctan2(Z, H) * 180 / np.pi  # inclination   
 
     # secular variation computation
     Xd, Yd, Zd, Hd, Fd = [None] * 5
@@ -287,6 +288,8 @@ def field_computation_pole(r_a, phi, theta, dic_g, dic_h, N, mat_rot, EPS):
         Z (float): Down component in nT in the geocentric coordinate,
     
     """
+    
+    # 3rd party import
     import numpy as np
 
     Zc = 0
@@ -336,6 +339,8 @@ def field_computation(r_a, M, Mp, phi, theta, dic_g, dic_h, N, mat_rot):
         Z (float): Down component in nT in the geocentric coordinate,
     
     """
+    
+    # 3rd party import
     import numpy as np
 
     # synthesis of Xc, Yc and Zc in geocentric coordinates
@@ -566,9 +571,7 @@ def decdeg2dms(dd):
     return degrees, minutes, seconds
 
 
-def construct_xarray(
-    intensities, angles, intensities_sv, angles_sv, longitudes, colatitudes
-):
+def construct_xarray(intensities, angles, intensities_sv, angles_sv, longitudes, colatitudes):
 
     """
     construct the xarray of a hyperspectrum
@@ -592,9 +595,7 @@ def construct_xarray(
     import xarray as xr
     import numpy as np
 
-    miller = lambda x: 1.25 * np.arcsinh(np.tan(4 * x * np.pi / 900)) * 180 / np.pi
-
-    y = miller(90 - colatitudes)
+    y = 90 - colatitudes
 
     dintensities = xr.DataArray(
         intensities,
@@ -623,16 +624,14 @@ def construct_xarray(
             ),
         },
     )
-
+    
     dintensities_sv = xr.DataArray(
         intensities_sv,
         dims=["typ", "lat", "long"],
         name="Field intensity secular variation",
         attrs={"units": "nT/year",},
         coords={
-            "typ": xr.DataArray(
-                ["Xd", "Yd", "Zd", "Hd", "Fd",], name="typ", dims=["typ"]
-            ),
+            "typ": xr.DataArray(["Xd", "Yd", "Zd", "Hd", "Fd",], name="typ", dims=["typ"]),
             "lat": xr.DataArray(y, name="lat", dims=["lat"], attrs={"units": "°"}),
             "long": xr.DataArray(
                 longitudes, name="long", dims=["long"], attrs={"units": "°"}
@@ -653,13 +652,11 @@ def construct_xarray(
             ),
         },
     )
-
+    
     return dintensities, dangles, dintensities_sv, dangles_sv
 
 
-def grid_geomagnetic(
-    colatitudes, longitudes, height=0, Date={"mode": "dec", "year": 2020.0}
-):
+def grid_geomagnetic(colatitudes, longitudes, height=0, Date={"mode":"dec","year":2020.0}):
 
     """computes the geomagnetic field characteristics on a mesh of
     colatitudes, latitudes
@@ -677,11 +674,14 @@ def grid_geomagnetic(
 
     # 3rd party dependencies
     import numpy as np
+    from tqdm import trange
+    
+    
+    X,Y,Z,H,F,D,I = [],[],[],[],[],[],[]
+    Xd,Yd,Zd,Hd,Fd,Dd,Id = [],[],[],[],[],[],[]
 
-    X, Y, Z, H, F, D, I = [], [], [], [], [], [], []
-    Xd, Yd, Zd, Hd, Fd, Dd, Id = [], [], [], [], [], [], []
-
-    for colatitude in colatitudes:
+    for index in trange(len(colatitudes), desc="colatitude"):
+        colatitude = colatitudes[index]
         for longitude in longitudes:
             result = B_components(
                 longitude,
@@ -699,7 +699,7 @@ def grid_geomagnetic(
             F.append(result["F"])
             D.append(result["D"])
             I.append(result["I"])
-
+            
             Xd.append(result["Xd"])
             Yd.append(result["Yd"])
             Zd.append(result["Zd"])
@@ -720,7 +720,7 @@ def grid_geomagnetic(
         np.array(D).reshape((len(colatitudes), len(longitudes))),
         np.array(I).reshape((len(colatitudes), len(longitudes))),
     ]
-
+    
     intensities_sv = [
         np.array(Xd).reshape((len(colatitudes), len(longitudes))),
         np.array(Yd).reshape((len(colatitudes), len(longitudes))),
@@ -734,8 +734,144 @@ def grid_geomagnetic(
         np.array(Id).reshape((len(colatitudes), len(longitudes))),
     ]
 
-    dintensities, dangles, dintensities_sv, dangles_sv = construct_xarray(
+    dintensities, dangles, dintensities_sv, dangles_sv  = construct_xarray(
         intensities, angles, intensities_sv, angles_sv, longitudes, colatitudes
     )
 
     return dintensities, dangles, dintensities_sv, dangles_sv
+
+def plot_geomagetism(dintensities, dangles, dintensities_sv, dangles_sv,
+                     var,proj_type,
+                     cmap='jet'):
+    
+    """Draw the iso values of the geomagnetic field characteristics.
+    
+    Arguments:
+        dintensities (xarray): contain the values of the geomagnetic field components X,Y,Z,H,F
+        dangles (xarray): contain the values of the geomagnetic field angle D,I
+        dintensities_sv (xarray): contain the secular variation of the geomagnetic field components
+            Xd,Yd,Zd,Fd,Hd
+        dangles_sv (xarray):  contain the secular variation of the geomagnetic field angle Dd,Id
+        var (string): geomagnetic field characteristics to plot
+            var must be in ['X','Y','Z','H','F','Xd','Yd','Zd','Hd','Fd','I','D','Id','Dd']
+        proj_type (dic): contain the projection to be used Miller (mill), Lambert (lcc),
+            stereographic north pole (npstere), stereographic south pole pole (spstere).
+            The dictionnaries are organized as follow:
+                    {'proj':'mill',
+                    'llcrnrlat':-90,
+                    'urcrnrlat': 90, 
+                    'llcrnrlon':0,
+                    'urcrnrlon':259}
+
+                   {'proj':'lcc',
+                    'lat_1':45.,
+                    'lat_2':55,
+                    'lat_0':45,
+                    'lon_0':10.}
+
+                    {'proj':'npstere',
+                     'boundinglat':70,
+                     'lon_0':270}
+
+                    {'proj':'spstere',
+                     'boundinglat':-55,
+                     'lon_0':270}         
+    """
+    
+    #Standard Library dependencies
+    import os
+    
+    # 3rd party import
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    if 'HOME' in os.environ:
+        home = os.environ['HOME']
+    elif os.name == 'posix':
+        home = os.path.expanduser("~/")
+    elif os.name == 'nt':
+        if 'HOMEPATH' in os.environ and 'HOMEDRIVE' in os.environ:
+            home = os.environ['HOMEDRIVE'] + os.environ['HOMEPATH']
+    else:
+        home = os.environ['HOMEPATH']
+        
+    os.environ['PROJ_LIB'] = os.path.join(home,'Anaconda3\pkgs\proj4-5.2.0-ha925a31_1\Library\share')
+    from mpl_toolkits.basemap import Basemap
+    
+    if var in ['X','Y','Z','H','F',]:
+        p = dintensities.sel(typ=var)
+    elif var in ['Xd','Yd','Zd','Hd','Fd']:
+        p = dintensities_sv.sel(typ=var)
+    elif var in ['I','D']:
+        p = dangles.sel(typ=var)
+    elif var in ['Id','Dd']:
+        p = dangles_sv.sel(typ=var)
+    
+    lat = p.lat.values
+    long = p.long.values
+    LAT, LONG = np.meshgrid(long, lat)
+    
+    fig = plt.figure(figsize=(8,8))
+    PROJ = proj_type['proj']
+    if PROJ=='mill':
+        m = Basemap(projection='mill',resolution='l', 
+                 llcrnrlat=proj_type['llcrnrlat'],
+                 urcrnrlat=proj_type['urcrnrlat'], 
+                 llcrnrlon=proj_type['llcrnrlon'],
+                 urcrnrlon =proj_type['urcrnrlon'])
+        m.drawcoastlines(linewidth=0.5)
+        
+        CS = m.contour(LAT, LONG, p.values,levels=50,latlon=True,alpha=0.4, cmap=cmap)
+        plt.colorbar(CS,label=p.attrs)
+        parallels = np.arange(-80.,80,20.)
+        m.drawparallels(parallels,labels=[True,False,False,False])
+        meridians = np.arange(0.,350.,60.)
+        m.drawmeridians(meridians,labels=[False,False,False,True])
+        plt.title(var)
+        
+    elif PROJ=='npstere' :
+        m = Basemap(projection='npstere',
+                    boundinglat=proj_type['boundinglat'],
+                    lon_0=proj_type['lon_0'],
+                    resolution='l')
+        m.drawcoastlines(linewidth=0.5)
+        CS = m.contour(LAT, LONG, p.values,levels=50,latlon=True,alpha=0.4, cmap=cmap)
+        plt.colorbar(CS,label=p.attrs)
+        parallels = np.arange(-80.,80,20.)
+        m.drawparallels(parallels,labels=[True,False,True,False])
+        meridians = np.arange(0.,350.,60.)
+        m.drawmeridians(meridians,labels=[True,False,False,True])
+        plt.title(var)
+    
+    elif PROJ=='spstere' :
+        m = Basemap(projection='spstere',
+                    boundinglat=proj_type['boundinglat'] ,
+                    lon_0=proj_type['lon_0'] ,
+                    resolution='l')
+        m.drawcoastlines(linewidth=0.5)
+        CS = m.contour(LAT, LONG, p.values,levels=50,latlon=True,alpha=0.4, cmap=cmap)
+        plt.colorbar(CS,label=p.attrs)
+        parallels = np.arange(-80.,80,20.)
+        m.drawparallels(parallels,labels=[True,False,True,False])
+        meridians = np.arange(0.,350.,60.)
+        m.drawmeridians(meridians,labels=[True,False,False,True])
+        plt.title(var)
+        
+    elif PROJ=='lcc':
+        m = Basemap(width=4000000,height=3000000,
+                    rsphere=(6378137.00,6356752.3142),\
+                    resolution='l',
+                    area_thresh=1000.,
+                    projection='lcc',
+                    lat_1=proj_type['lat_1'],
+                    lat_2=proj_type['lat_2'],
+                    lat_0=proj_type['lat_0'],
+                    lon_0=proj_type['lon_0'])
+        CS = m.contour(LAT, LONG, p.values,levels=50,latlon=True,alpha=0.9, cmap=cmap)
+        plt.colorbar(CS,label=p.attrs)
+        m.drawcoastlines(linewidth=0.5)
+        m.drawparallels(np.arange(-20.,60.,5.),labels=[True,False,False,False])
+        m.drawmeridians(np.arange(-20.,60.,5.),labels=[False,False,False,True])
+        plt.clabel(CS, inline=1, fontsize=6,colors='k')
+        plt.title(var)
+    plt.show()
