@@ -10,6 +10,8 @@ pip install geomagnetism
 ## Usage example
 **refer to** [geomagnetism-exemples](https://github.com/Bertin-fap/geomagnetism-exemples).
 
+## Theoritical background
+**refer to** [theoritical background] (https://github.com/Bertin-fap/geomagnetism/blob/master/doc/geomagnetism_notes.pdf)
 
 # Release History
 0.0.2 correct pole ambiguity by using limitig value of associated Legendre polynomial.
